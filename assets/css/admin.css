@@ -99,6 +99,7 @@
 
 .mpca-badge-active { background: #dcfce7; color: #166534; }
 .mpca-badge-inactive { background: #fee2e2; color: #991b1b; }
+.mpca-badge-broken { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
 
 .mpca-export-btn {
     background: #2563eb !important;

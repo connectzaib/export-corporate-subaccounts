@@ -18,18 +18,19 @@ class MPCA_Report {
     }
 
     public function register_menu() {
-        add_submenu_page(
-            'memberpress',
+        add_menu_page(
             'Corporate Reports',
             'Corporate Reports',
             'manage_options',
             'mpca-reports',
-            array( $this, 'render_page' )
+            array( $this, 'render_page' ),
+            'dashicons-chart-bar',
+            30
         );
     }
 
     public function enqueue_assets( $hook ) {
-        if ( 'memberpress_page_mpca-reports' !== $hook ) {
+        if ( 'toplevel_page_mpca-reports' !== $hook ) {
             return;
         }
 
@@ -69,7 +70,9 @@ class MPCA_Report {
 
     public function render_dashboard_widget() {
         global $wpdb;
-        $stats = $wpdb->get_row( "SELECT COUNT(*) as total_accounts, SUM(num_sub_accounts) as total_seats FROM {$wpdb->prefix}mepr_corporate_accounts" );
+        $stats = $wpdb->get_row( "SELECT COUNT(ca.id) as total_accounts, SUM(ca.num_sub_accounts) as total_seats 
+                                 FROM {$wpdb->prefix}mepr_corporate_accounts ca
+                                 INNER JOIN {$wpdb->users} u ON ca.user_id = u.ID" );
         
         // This might be slow if there are thousands of accounts, but for 556 it's okay.
         // For better performance, we could cache this or use a direct SQL for used seats.

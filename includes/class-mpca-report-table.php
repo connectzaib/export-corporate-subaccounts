@@ -55,11 +55,26 @@ class MPCA_Report_Table extends WP_List_Table {
     }
 
     public function column_owner( $item ) {
+        $edit_url = admin_url( 'user-edit.php?user_id=' . $item['owner_id'] );
         return sprintf(
-            '<strong>%1$s</strong><br><span class="mpca-owner-info">%2$s</span>',
+            '<strong>%1$s</strong><br><span class="mpca-owner-info">%2$s</span><br>' .
+            '<a href="%3$s" target="_blank" class="mpca-edit-link" style="font-size: 11px; text-decoration: none; color: #2563eb;"><span class="dashicons dashicons-edit" style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle;"></span> Edit User</a>',
             esc_html( $item['owner_name'] ),
-            esc_html( $item['owner_email'] )
+            esc_html( $item['owner_email'] ),
+            esc_url( $edit_url )
         );
+    }
+
+    public function column_membership( $item ) {
+        $html = $item['membership'];
+        if ( ! empty( $item['membership_id'] ) ) {
+            $edit_url = admin_url( 'post.php?post=' . $item['membership_id'] . '&action=edit' );
+            $html .= sprintf(
+                '<br><a href="%1$s" target="_blank" class="mpca-edit-link" style="font-size: 11px; text-decoration: none; color: #2563eb;"><span class="dashicons dashicons-edit" style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle;"></span> Edit Membership</a>',
+                esc_url( $edit_url )
+            );
+        }
+        return $html;
     }
 
     public function column_seats( $item ) {
@@ -93,11 +108,18 @@ class MPCA_Report_Table extends WP_List_Table {
     }
 
     public function column_status( $item ) {
-        $class = $item['status'] === 'enabled' ? 'active' : 'inactive';
+        $status = $item['status'];
+        $class = $status === 'enabled' ? 'active' : 'inactive';
+        
+        // If it's broken, we use the broken class for styling but keep the original label
+        if ( isset( $item['is_broken'] ) && $item['is_broken'] ) {
+            $class = 'broken';
+        }
+
         return sprintf(
             '<span class="mpca-badge mpca-badge-%1$s">%2$s</span>',
             $class,
-            esc_html( ucfirst( $item['status'] ) )
+            esc_html( ucfirst( $status ) )
         );
     }
 
@@ -137,7 +159,7 @@ class MPCA_Report_Table extends WP_List_Table {
 
         // Query
         $sql = "SELECT ca.* FROM {$wpdb->prefix}mepr_corporate_accounts ca 
-                LEFT JOIN {$wpdb->users} u ON ca.user_id = u.ID
+                INNER JOIN {$wpdb->users} u ON ca.user_id = u.ID
                 LEFT JOIN {$wpdb->usermeta} um ON u.ID = um.user_id AND um.meta_key = 'mepr_company_name-1'
                 $where";
 
@@ -157,7 +179,19 @@ class MPCA_Report_Table extends WP_List_Table {
             $ca = new MPCA_Corporate_Account( $row->id );
             $owner = $ca->user();
             $obj = $ca->get_obj();
-            $product = $obj ? $obj->product() : null;
+
+            $membership_name = 'N/A';
+            $membership_id = 0;
+            $is_broken = false;
+
+            if ( $obj && $obj->id > 0 ) {
+                $product = $obj->product();
+                $membership_name = $product ? $product->post_title : 'N/A';
+                $membership_id = $product ? $product->ID : 0;
+            } else {
+                $membership_name = '<span style="color: #ef4444; font-weight: 600;"><span class="dashicons dashicons-warning" style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle;"></span> Missing Transaction</span><br><small style="color: #64748b; font-weight: 400;">(Manually added/modified)</small>';
+                $is_broken = true;
+            }
             
             $company = get_user_meta( $row->user_id, 'mepr_company_name-1', true );
             if ( empty( $company ) ) {
@@ -165,15 +199,18 @@ class MPCA_Report_Table extends WP_List_Table {
             }
 
             $data[] = array(
-                'id'          => $row->id,
-                'company'     => $company,
-                'owner_name'  => $owner->full_name(),
-                'owner_email' => $owner->user_email,
-                'membership'  => $product ? $product->post_title : 'N/A',
-                'seats_used'  => $ca->num_sub_accounts_used(),
-                'seats_total' => $row->num_sub_accounts,
-                'status'      => $row->status,
-                'manage_url'  => $ca->sub_account_management_url(),
+                'id'            => $row->id,
+                'company'       => $company,
+                'owner_id'      => $row->user_id,
+                'owner_name'    => $owner->full_name(),
+                'owner_email'   => $owner->user_email,
+                'membership'    => $membership_name,
+                'membership_id' => $membership_id,
+                'seats_used'    => $ca->num_sub_accounts_used(),
+                'seats_total'   => $row->num_sub_accounts,
+                'status'        => $row->status,
+                'is_broken'     => $is_broken,
+                'manage_url'    => $ca->sub_account_management_url(),
             );
         }
 
