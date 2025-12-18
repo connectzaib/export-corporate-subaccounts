@@ -210,7 +210,7 @@ class MPCA_Report_Table extends WP_List_Table {
         if ( $orderby_request === 'company' ) {
             $orderby = 'company_name';
         } elseif ( $orderby_request === 'seats' ) {
-            $orderby = 'seats_used_count';
+            $orderby = '(seats_used_count / NULLIF(ca.num_sub_accounts, 0))';
         }
         
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
