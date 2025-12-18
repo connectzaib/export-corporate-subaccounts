@@ -7,6 +7,7 @@ class MPCA_Report {
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_action( 'wp_ajax_mpca_export_csv', array( $this, 'handle_csv_export' ) );
         add_action( 'wp_dashboard_setup', array( $this, 'register_dashboard_widget' ) );
+        add_action( 'admin_init', array( $this, 'handle_all_export' ) );
     }
 
     public function register_dashboard_widget() {
@@ -166,6 +167,58 @@ class MPCA_Report {
         }
 
         $filename = 'subaccounts-' . $ca_id . '-' . time();
+        MeprUtils::render_csv( $csv_results, $filename );
+        exit;
+    }
+
+    /**
+     * Handle exporting all sub-accounts
+     */
+    public function handle_all_export() {
+        global $wpdb;
+
+        // Run only when explicitly requested
+        if ( ! isset( $_GET['export_all'] ) ) {
+            return;
+        }
+
+        // Verify nonce for security
+        $nonce = isset( $_GET['_wpnonce'] ) ? sanitize_key( wp_unslash( $_GET['_wpnonce'] ) ) : '';
+        if ( ! wp_verify_nonce( $nonce, 'mpca_export_all' ) ) {
+            return;
+        }
+
+        // Restrict to admins
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Unauthorized access', 'export-corporate-subaccounts' ) );
+        }
+
+        // Get corporate account IDs
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $corp_ids = $wpdb->get_results(
+            "SELECT id FROM {$wpdb->prefix}mepr_corporate_accounts"
+        );
+
+        $csv_results = array();
+
+        foreach ( $corp_ids as $corp ) {
+            $ca = new MPCA_Corporate_Account( $corp->id );
+            $ca_owner = $ca->user();
+            $sub_accounts = $ca->sub_users();
+
+            foreach ( $sub_accounts as $sub_account ) {
+                $csv_results[] = array(
+                    __( 'Owner Name', 'export-corporate-subaccounts' )         => $ca_owner->full_name(),
+                    __( 'Owner Email', 'export-corporate-subaccounts' )        => $ca_owner->user_email,
+                    __( 'Subacc. Email', 'export-corporate-subaccounts' )      => $sub_account->user_email,
+                    __( 'Subacc. Username', 'export-corporate-subaccounts' )   => $sub_account->user_login,
+                    __( 'Subacc. First Name', 'export-corporate-subaccounts' ) => $sub_account->first_name,
+                    __( 'Subacc. Last Name', 'export-corporate-subaccounts' )  => $sub_account->last_name,
+                );
+            }
+        }
+
+        $filename = 'all-subaccounts-' . time();
         MeprUtils::render_csv( $csv_results, $filename );
         exit;
     }
