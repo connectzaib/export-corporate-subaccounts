@@ -41,7 +41,7 @@ class MPCA_Report_Table extends WP_List_Table {
             case 'actions':
                 return $item[ $column_name ];
             default:
-                return print_r( $item, true );
+                return '';
         }
     }
 
@@ -158,6 +158,17 @@ class MPCA_Report_Table extends WP_List_Table {
     public function prepare_items() {
         global $wpdb;
 
+        // Verify nonce if filtering
+        if ( ! empty( $_GET['s'] ) || ! empty( $_GET['orderby'] ) || ! empty( $_GET['order'] ) ) {
+            $nonce = isset( $_GET['mpca_nonce'] ) ? sanitize_text_field( wp_unslash( $_GET['mpca_nonce'] ) ) : '';
+            if ( ! wp_verify_nonce( $nonce, 'mpca_report_filter' ) ) {
+                // If nonce fails, we just don't filter
+                $_GET['s'] = '';
+                $_GET['orderby'] = '';
+                $_GET['order'] = '';
+            }
+        }
+
         $per_page = 20;
         $current_page = $this->get_pagenum();
         $offset = ( $current_page - 1 ) * $per_page;
@@ -169,9 +180,13 @@ class MPCA_Report_Table extends WP_List_Table {
 
         // Search
         $where = "";
-        if ( ! empty( $_REQUEST['s'] ) ) {
-            $search = esc_sql( $_REQUEST['s'] );
-            $where = " WHERE (u.display_name LIKE '%$search%' OR u.user_email LIKE '%$search%' OR um.meta_value LIKE '%$search%')";
+        $query_args = array();
+        if ( ! empty( $_GET['s'] ) ) {
+            $search = '%' . $wpdb->esc_like( sanitize_text_field( wp_unslash( $_GET['s'] ) ) ) . '%';
+            $where = " WHERE (u.display_name LIKE %s OR u.user_email LIKE %s OR um.meta_value LIKE %s)";
+            $query_args[] = $search;
+            $query_args[] = $search;
+            $query_args[] = $search;
         }
 
         // Query
@@ -184,8 +199,9 @@ class MPCA_Report_Table extends WP_List_Table {
                 $where";
 
         // Ordering
-        $orderby_request = ! empty( $_REQUEST['orderby'] ) ? $_REQUEST['orderby'] : 'id';
-        $order = ! empty( $_REQUEST['order'] ) ? esc_sql( $_REQUEST['order'] ) : 'DESC';
+        $orderby_request = ! empty( $_GET['orderby'] ) ? sanitize_text_field( wp_unslash( $_GET['orderby'] ) ) : 'id';
+        $order_request = ! empty( $_GET['order'] ) ? sanitize_text_field( wp_unslash( $_GET['order'] ) ) : 'DESC';
+        $order = strtoupper( $order_request ) === 'ASC' ? 'ASC' : 'DESC';
         
         // Map request orderby to SQL columns
         $orderby = 'ca.id';
@@ -195,12 +211,26 @@ class MPCA_Report_Table extends WP_List_Table {
             $orderby = 'seats_used_count';
         }
         
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $sql .= " ORDER BY $orderby $order";
 
         // Pagination
-        $total_items = $wpdb->get_var( "SELECT COUNT(*) FROM ({$sql}) as t" );
-        $sql .= " LIMIT $per_page OFFSET $offset";
+        $count_sql = "SELECT COUNT(*) FROM ({$sql}) as t";
+        if ( ! empty( $query_args ) ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+            $count_sql = $wpdb->prepare( $count_sql, $query_args );
+        }
+        
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $total_items = $wpdb->get_var( $count_sql );
 
+        $sql .= " LIMIT $per_page OFFSET $offset";
+        if ( ! empty( $query_args ) ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+            $sql = $wpdb->prepare( $sql, $query_args );
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $results = $wpdb->get_results( $sql );
         $data = array();
 

@@ -8,6 +8,8 @@
  * Text Domain: export-corporate-subaccounts
  * Domain Path: /languages
  * Requires Plugins: memberpress, memberpress-corporate
+ * License: GPLv2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -57,7 +59,7 @@ add_action( 'admin_init', function () {
     }
 
     // Verify nonce for security
-    if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( $_GET['_wpnonce'], 'mpca_export_all' ) ) {
+    if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ) ), 'mpca_export_all' ) ) {
         return;
     }
 
@@ -67,6 +69,7 @@ add_action( 'admin_init', function () {
     }
 
     // Get corporate account IDs
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $corp_ids = $wpdb->get_results(
         "SELECT id FROM {$wpdb->prefix}mepr_corporate_accounts"
     );

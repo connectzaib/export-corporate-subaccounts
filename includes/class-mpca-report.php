@@ -36,7 +36,7 @@ class MPCA_Report {
 
         wp_enqueue_style( 'mpca-admin-css', MPCA_EXPORT_URL . 'assets/css/admin.css', array(), '1.1.0' );
         // Add Inter font from Google Fonts
-        wp_enqueue_style( 'mpca-google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap', array(), null );
+        wp_enqueue_style( 'mpca-google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap', array(), '1.0.0' );
     }
 
     public function render_page() {
@@ -64,11 +64,21 @@ class MPCA_Report {
             <div class="mpca-card">
                 <form method="get" action="admin.php">
                     <input type="hidden" name="page" value="mpca-reports" />
-                    <?php if ( ! empty( $_REQUEST['orderby'] ) ) : ?>
-                        <input type="hidden" name="orderby" value="<?php echo esc_attr( $_REQUEST['orderby'] ); ?>" />
+                    <?php wp_nonce_field( 'mpca_report_filter', 'mpca_nonce' ); ?>
+                    <?php 
+                    // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                    $orderby = isset( $_GET['orderby'] ) ? sanitize_text_field( wp_unslash( $_GET['orderby'] ) ) : '';
+                    // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                    $order   = isset( $_GET['order'] ) ? sanitize_text_field( wp_unslash( $_GET['order'] ) ) : '';
+                    
+                    // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                    if ( ! empty( $orderby ) ) : ?>
+                        <input type="hidden" name="orderby" value="<?php echo esc_attr( $orderby ); ?>" />
                     <?php endif; ?>
-                    <?php if ( ! empty( $_REQUEST['order'] ) ) : ?>
-                        <input type="hidden" name="order" value="<?php echo esc_attr( $_REQUEST['order'] ); ?>" />
+                    <?php 
+                    // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                    if ( ! empty( $order ) ) : ?>
+                        <input type="hidden" name="order" value="<?php echo esc_attr( $order ); ?>" />
                     <?php endif; ?>
                     <?php
                     $table->search_box( __( 'Search Accounts', 'export-corporate-subaccounts' ), 'mpca-search' );
@@ -85,10 +95,12 @@ class MPCA_Report {
 
         $stats = get_transient( 'mpca_report_stats' );
         if ( false === $stats ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $stats_data = $wpdb->get_row( "SELECT COUNT(ca.id) as total_accounts, SUM(ca.num_sub_accounts) as total_seats 
                                      FROM {$wpdb->prefix}mepr_corporate_accounts ca
                                      INNER JOIN {$wpdb->users} u ON ca.user_id = u.ID" );
             
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $used_seats_count = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key = 'mpca_corporate_account_id'" );
             
             $stats = array(
