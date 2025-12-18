@@ -109,17 +109,22 @@ class MPCA_Report_Table extends WP_List_Table {
 
     public function column_status( $item ) {
         $status = $item['status'];
-        $class = $status === 'enabled' ? 'active' : 'inactive';
-        
-        // If it's broken, we use the broken class for styling but keep the original label
+        $label = ucfirst( $status );
+        $class = $status;
+
+        // Use MemberPress human readable labels if possible
+        if ( class_exists( 'MeprAppHelper' ) && $item['status_type'] !== 'corporate' ) {
+            $label = MeprAppHelper::human_readable_status( $status, $item['status_type'] );
+        }
+
         if ( isset( $item['is_broken'] ) && $item['is_broken'] ) {
             $class = 'broken';
         }
 
         return sprintf(
             '<span class="mpca-badge mpca-badge-%1$s">%2$s</span>',
-            $class,
-            esc_html( ucfirst( $status ) )
+            esc_attr( $class ),
+            esc_html( $label )
         );
     }
 
@@ -130,12 +135,19 @@ class MPCA_Report_Table extends WP_List_Table {
             '_wpnonce' => wp_create_nonce( 'mpca_export_' . $item['id'] )
         ), admin_url( 'admin-ajax.php' ) );
 
-        return sprintf(
-            '<a href="%1$s" class="button button-small" target="_blank" style="margin-bottom: 4px; display: block; text-align: center;">Manage Sub-accounts</a>' .
-            '<a href="%2$s" class="button button-small" style="display: block; text-align: center;">Export CSV</a>',
-            esc_url( $item['manage_url'] ),
-            esc_url( $export_url )
+        $actions = sprintf(
+            '<a href="%1$s" class="button button-small" target="_blank" style="margin-bottom: 4px; display: block; text-align: center;">Manage Sub-accounts</a>',
+            esc_url( $item['manage_url'] )
         );
+
+        if ( $item['seats_used'] > 0 ) {
+            $actions .= sprintf(
+                '<a href="%1$s" class="button button-small" style="display: block; text-align: center;">Export CSV</a>',
+                esc_url( $export_url )
+            );
+        }
+
+        return $actions;
     }
 
     public function prepare_items() {
@@ -182,12 +194,16 @@ class MPCA_Report_Table extends WP_List_Table {
 
             $membership_name = 'N/A';
             $membership_id = 0;
+            $membership_status = $row->status;
+            $status_type = 'corporate';
             $is_broken = false;
 
             if ( $obj && $obj->id > 0 ) {
                 $product = $obj->product();
                 $membership_name = $product ? $product->post_title : 'N/A';
                 $membership_id = $product ? $product->ID : 0;
+                $membership_status = $obj->status;
+                $status_type = ( $obj instanceof MeprSubscription ) ? 'subscription' : 'transaction';
             } else {
                 $membership_name = '<span style="color: #ef4444; font-weight: 600;"><span class="dashicons dashicons-warning" style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle;"></span> Missing Transaction</span><br><small style="color: #64748b; font-weight: 400;">(Manually added/modified)</small>';
                 $is_broken = true;
@@ -208,7 +224,8 @@ class MPCA_Report_Table extends WP_List_Table {
                 'membership_id' => $membership_id,
                 'seats_used'    => $ca->num_sub_accounts_used(),
                 'seats_total'   => $row->num_sub_accounts,
-                'status'        => $row->status,
+                'status'        => $membership_status,
+                'status_type'   => $status_type,
                 'is_broken'     => $is_broken,
                 'manage_url'    => $ca->sub_account_management_url(),
             );
