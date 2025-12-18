@@ -1,0 +1,174 @@
+# Copyright (C) 2025 Custom
+# This file is distributed under the same license as the Export Corporate Subaccounts & Reports plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: Export Corporate Subaccounts & Reports 1.1.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/export-subaccounts\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2025-12-18T08:33:23+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.11.0\n"
+"X-Domain: export-corporate-subaccounts\n"
+
+#. Plugin Name of the plugin
+#: export-subaccounts.php
+msgid "Export Corporate Subaccounts & Reports"
+msgstr ""
+
+#. Description of the plugin
+#: export-subaccounts.php
+msgid "Export MemberPress Corporate Account sub-users to CSV and view detailed dashboard reports."
+msgstr ""
+
+#. Author of the plugin
+#: export-subaccounts.php
+msgid "Custom"
+msgstr ""
+
+#. translators: %s: list of missing plugins
+#: export-subaccounts.php:39
+msgid "Export Corporate Subaccounts & Reports requires %s to be installed and active."
+msgstr ""
+
+#: export-subaccounts.php:40
+msgid "and"
+msgstr ""
+
+#: export-subaccounts.php:65
+msgid "Unauthorized access"
+msgstr ""
+
+#: export-subaccounts.php:82
+#: includes/class-mpca-report.php:147
+msgid "Owner Name"
+msgstr ""
+
+#: export-subaccounts.php:83
+#: includes/class-mpca-report.php:148
+msgid "Owner Email"
+msgstr ""
+
+#: export-subaccounts.php:84
+#: includes/class-mpca-report.php:149
+msgid "Subacc. Email"
+msgstr ""
+
+#: export-subaccounts.php:85
+#: includes/class-mpca-report.php:150
+msgid "Subacc. Username"
+msgstr ""
+
+#: export-subaccounts.php:86
+#: includes/class-mpca-report.php:151
+msgid "Subacc. First Name"
+msgstr ""
+
+#: export-subaccounts.php:87
+#: includes/class-mpca-report.php:152
+msgid "Subacc. Last Name"
+msgstr ""
+
+#: includes/class-mpca-report-table.php:18
+msgid "Account / Company"
+msgstr ""
+
+#: includes/class-mpca-report-table.php:19
+msgid "Owner"
+msgstr ""
+
+#: includes/class-mpca-report-table.php:20
+msgid "Membership"
+msgstr ""
+
+#: includes/class-mpca-report-table.php:21
+msgid "Seats Usage"
+msgstr ""
+
+#: includes/class-mpca-report-table.php:22
+msgid "Status"
+msgstr ""
+
+#: includes/class-mpca-report-table.php:23
+msgid "Actions"
+msgstr ""
+
+#: includes/class-mpca-report-table.php:65
+msgid "Edit User"
+msgstr ""
+
+#: includes/class-mpca-report-table.php:76
+msgid "Edit Membership"
+msgstr ""
+
+#: includes/class-mpca-report-table.php:98
+msgid "seats used"
+msgstr ""
+
+#: includes/class-mpca-report-table.php:108
+msgid "utilized"
+msgstr ""
+
+#: includes/class-mpca-report-table.php:144
+msgid "Manage Sub-accounts"
+msgstr ""
+
+#: includes/class-mpca-report-table.php:151
+msgid "Export CSV"
+msgstr ""
+
+#: includes/class-mpca-report-table.php:225
+msgid "Missing Transaction"
+msgstr ""
+
+#: includes/class-mpca-report-table.php:225
+msgid "Manually added/modified"
+msgstr ""
+
+#: includes/class-mpca-report.php:15
+msgid "Corporate Accounts Summary"
+msgstr ""
+
+#: includes/class-mpca-report.php:22
+#: includes/class-mpca-report.php:23
+msgid "Corporate Reports"
+msgstr ""
+
+#: includes/class-mpca-report.php:50
+msgid "Corporate Account Reports"
+msgstr ""
+
+#: includes/class-mpca-report.php:59
+msgid "Export All Sub-accounts"
+msgstr ""
+
+#: includes/class-mpca-report.php:74
+msgid "Search Accounts"
+msgstr ""
+
+#: includes/class-mpca-report.php:109
+msgid "Total Accounts"
+msgstr ""
+
+#: includes/class-mpca-report.php:113
+msgid "Seats Used"
+msgstr ""
+
+#: includes/class-mpca-report.php:120
+msgid "of total corporate capacity is currently utilized."
+msgstr ""
+
+#: includes/class-mpca-report.php:123
+msgid "View Detailed Report"
+msgstr ""
+
+#: includes/class-mpca-report.php:130
+msgid "Unauthorized"
+msgstr ""
+
+#: includes/class-mpca-report.php:135
+msgid "Invalid Corporate Account ID"
+msgstr ""

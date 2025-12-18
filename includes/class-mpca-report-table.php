@@ -15,12 +15,12 @@ class MPCA_Report_Table extends WP_List_Table {
 
     public function get_columns() {
         return array(
-            'company'    => 'Account / Company',
-            'owner'      => 'Owner',
-            'membership' => 'Membership',
-            'seats'      => 'Seats Usage',
-            'status'     => 'Status',
-            'actions'    => 'Actions',
+            'company'    => __( 'Account / Company', 'export-corporate-subaccounts' ),
+            'owner'      => __( 'Owner', 'export-corporate-subaccounts' ),
+            'membership' => __( 'Membership', 'export-corporate-subaccounts' ),
+            'seats'      => __( 'Seats Usage', 'export-corporate-subaccounts' ),
+            'status'     => __( 'Status', 'export-corporate-subaccounts' ),
+            'actions'    => __( 'Actions', 'export-corporate-subaccounts' ),
         );
     }
 
@@ -50,7 +50,7 @@ class MPCA_Report_Table extends WP_List_Table {
         return sprintf(
             '<span class="mpca-company-name">%1$s</span><span class="mpca-owner-info">ID: %2$s</span>',
             esc_html( $name ),
-            $item['id']
+            esc_html( $item['id'] )
         );
     }
 
@@ -58,10 +58,11 @@ class MPCA_Report_Table extends WP_List_Table {
         $edit_url = admin_url( 'user-edit.php?user_id=' . $item['owner_id'] );
         return sprintf(
             '<strong>%1$s</strong><br><span class="mpca-owner-info">%2$s</span><br>' .
-            '<a href="%3$s" target="_blank" class="mpca-edit-link" style="font-size: 11px; text-decoration: none; color: #2563eb;"><span class="dashicons dashicons-edit" style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle;"></span> Edit User</a>',
+            '<a href="%3$s" target="_blank" class="mpca-edit-link" style="font-size: 11px; text-decoration: none; color: #2563eb;"><span class="dashicons dashicons-edit" style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle;"></span> %4$s</a>',
             esc_html( $item['owner_name'] ),
             esc_html( $item['owner_email'] ),
-            esc_url( $edit_url )
+            esc_url( $edit_url ),
+            __( 'Edit User', 'export-corporate-subaccounts' )
         );
     }
 
@@ -70,8 +71,9 @@ class MPCA_Report_Table extends WP_List_Table {
         if ( ! empty( $item['membership_id'] ) ) {
             $edit_url = admin_url( 'post.php?post=' . $item['membership_id'] . '&action=edit' );
             $html .= sprintf(
-                '<br><a href="%1$s" target="_blank" class="mpca-edit-link" style="font-size: 11px; text-decoration: none; color: #2563eb;"><span class="dashicons dashicons-edit" style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle;"></span> Edit Membership</a>',
-                esc_url( $edit_url )
+                '<br><a href="%1$s" target="_blank" class="mpca-edit-link" style="font-size: 11px; text-decoration: none; color: #2563eb;"><span class="dashicons dashicons-edit" style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle;"></span> %2$s</a>',
+                esc_url( $edit_url ),
+                __( 'Edit Membership', 'export-corporate-subaccounts' )
             );
         }
         return $html;
@@ -90,19 +92,20 @@ class MPCA_Report_Table extends WP_List_Table {
         }
 
         $html = sprintf(
-            '<strong>%1$d / %2$d</strong> seats used',
+            '<strong>%1$d / %2$d</strong> %3$s',
             $used,
-            $total
+            $total,
+            __( 'seats used', 'export-corporate-subaccounts' )
         );
 
         $html .= '<div class="mpca-progress-container">';
         $html .= sprintf(
             '<div class="mpca-progress-bar %1$s" style="width: %2$d%%;"></div>',
-            $class,
+            esc_attr( $class ),
             min( 100, $percent )
         );
         $html .= '</div>';
-        $html .= sprintf( '<span class="mpca-usage-text">%1$d%% utilized</span>', $percent );
+        $html .= sprintf( '<span class="mpca-usage-text">%1$d%% %2$s</span>', esc_html( $percent ), esc_html__( 'utilized', 'export-corporate-subaccounts' ) );
 
         return $html;
     }
@@ -136,14 +139,16 @@ class MPCA_Report_Table extends WP_List_Table {
         ), admin_url( 'admin-ajax.php' ) );
 
         $actions = sprintf(
-            '<a href="%1$s" class="button button-small" target="_blank" style="margin-bottom: 4px; display: block; text-align: center;">Manage Sub-accounts</a>',
-            esc_url( $item['manage_url'] )
+            '<a href="%1$s" class="button button-small" target="_blank" style="margin-bottom: 4px; display: block; text-align: center;">%2$s</a>',
+            esc_url( $item['manage_url'] ),
+            __( 'Manage Sub-accounts', 'export-corporate-subaccounts' )
         );
 
         if ( $item['seats_used'] > 0 ) {
             $actions .= sprintf(
-                '<a href="%1$s" class="button button-small" style="display: block; text-align: center;">Export CSV</a>',
-                esc_url( $export_url )
+                '<a href="%1$s" class="button button-small" style="display: block; text-align: center;">%2$s</a>',
+                esc_url( $export_url ),
+                __( 'Export CSV', 'export-corporate-subaccounts' )
             );
         }
 
@@ -170,14 +175,26 @@ class MPCA_Report_Table extends WP_List_Table {
         }
 
         // Query
-        $sql = "SELECT ca.* FROM {$wpdb->prefix}mepr_corporate_accounts ca 
+        $sql = "SELECT ca.*, 
+                um.meta_value as company_name,
+                (SELECT COUNT(DISTINCT user_id) FROM {$wpdb->usermeta} WHERE meta_key = 'mpca_corporate_account_id' AND meta_value = ca.id) as seats_used_count
+                FROM {$wpdb->prefix}mepr_corporate_accounts ca 
                 INNER JOIN {$wpdb->users} u ON ca.user_id = u.ID
                 LEFT JOIN {$wpdb->usermeta} um ON u.ID = um.user_id AND um.meta_key = 'mepr_company_name-1'
                 $where";
 
         // Ordering
-        $orderby = ! empty( $_REQUEST['orderby'] ) ? esc_sql( $_REQUEST['orderby'] ) : 'id';
+        $orderby_request = ! empty( $_REQUEST['orderby'] ) ? $_REQUEST['orderby'] : 'id';
         $order = ! empty( $_REQUEST['order'] ) ? esc_sql( $_REQUEST['order'] ) : 'DESC';
+        
+        // Map request orderby to SQL columns
+        $orderby = 'ca.id';
+        if ( $orderby_request === 'company' ) {
+            $orderby = 'company_name';
+        } elseif ( $orderby_request === 'seats_used' ) {
+            $orderby = 'seats_used_count';
+        }
+        
         $sql .= " ORDER BY $orderby $order";
 
         // Pagination
@@ -205,7 +222,7 @@ class MPCA_Report_Table extends WP_List_Table {
                 $membership_status = $obj->status;
                 $status_type = ( $obj instanceof MeprSubscription ) ? 'subscription' : 'transaction';
             } else {
-                $membership_name = '<span style="color: #ef4444; font-weight: 600;"><span class="dashicons dashicons-warning" style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle;"></span> Missing Transaction</span><br><small style="color: #64748b; font-weight: 400;">(Manually added/modified)</small>';
+                $membership_name = '<span style="color: #ef4444; font-weight: 600;"><span class="dashicons dashicons-warning" style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle;"></span> ' . __( 'Missing Transaction', 'export-corporate-subaccounts' ) . '</span><br><small style="color: #64748b; font-weight: 400;">(' . __( 'Manually added/modified', 'export-corporate-subaccounts' ) . ')</small>';
                 $is_broken = true;
             }
             

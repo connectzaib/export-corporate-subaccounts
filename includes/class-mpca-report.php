@@ -12,15 +12,15 @@ class MPCA_Report {
     public function register_dashboard_widget() {
         wp_add_dashboard_widget(
             'mpca_summary_widget',
-            'Corporate Accounts Summary',
+            __( 'Corporate Accounts Summary', 'export-corporate-subaccounts' ),
             array( $this, 'render_dashboard_widget' )
         );
     }
 
     public function register_menu() {
         add_menu_page(
-            'Corporate Reports',
-            'Corporate Reports',
+            __( 'Corporate Reports', 'export-corporate-subaccounts' ),
+            __( 'Corporate Reports', 'export-corporate-subaccounts' ),
             'manage_options',
             'mpca-reports',
             array( $this, 'render_page' ),
@@ -47,19 +47,31 @@ class MPCA_Report {
         ?>
         <div class="wrap mpca-report-wrap">
             <div class="mpca-report-header">
-                <h1>Corporate Account Reports</h1>
+                <h1><?php esc_html_e( 'Corporate Account Reports', 'export-corporate-subaccounts' ); ?></h1>
                 <div class="mpca-header-actions">
-                    <a href="<?php echo esc_url( add_query_arg( 'export_all', 1 ) ); ?>" class="mpca-export-btn">
-                        <span class="dashicons dashicons-download"></span> Export All Sub-accounts
+                    <?php
+                    $export_all_url = add_query_arg( array(
+                        'export_all' => 1,
+                        '_wpnonce'   => wp_create_nonce( 'mpca_export_all' ),
+                    ) );
+                    ?>
+                    <a href="<?php echo esc_url( $export_all_url ); ?>" class="mpca-export-btn">
+                        <span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Export All Sub-accounts', 'export-corporate-subaccounts' ); ?>
                     </a>
                 </div>
             </div>
 
             <div class="mpca-card">
-                <form method="get">
+                <form method="get" action="admin.php">
                     <input type="hidden" name="page" value="mpca-reports" />
+                    <?php if ( ! empty( $_REQUEST['orderby'] ) ) : ?>
+                        <input type="hidden" name="orderby" value="<?php echo esc_attr( $_REQUEST['orderby'] ); ?>" />
+                    <?php endif; ?>
+                    <?php if ( ! empty( $_REQUEST['order'] ) ) : ?>
+                        <input type="hidden" name="order" value="<?php echo esc_attr( $_REQUEST['order'] ); ?>" />
+                    <?php endif; ?>
                     <?php
-                    $table->search_box( 'Search Accounts', 'mpca-search' );
+                    $table->search_box( __( 'Search Accounts', 'export-corporate-subaccounts' ), 'mpca-search' );
                     $table->display();
                     ?>
                 </form>
@@ -70,47 +82,57 @@ class MPCA_Report {
 
     public function render_dashboard_widget() {
         global $wpdb;
-        $stats = $wpdb->get_row( "SELECT COUNT(ca.id) as total_accounts, SUM(ca.num_sub_accounts) as total_seats 
-                                 FROM {$wpdb->prefix}mepr_corporate_accounts ca
-                                 INNER JOIN {$wpdb->users} u ON ca.user_id = u.ID" );
-        
-        // This might be slow if there are thousands of accounts, but for 556 it's okay.
-        // For better performance, we could cache this or use a direct SQL for used seats.
-        $used_seats = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key = 'mpca_corporate_account_id'" );
 
-        $percent = $stats->total_seats > 0 ? ( $used_seats / $stats->total_seats ) * 100 : 0;
+        $stats = get_transient( 'mpca_report_stats' );
+        if ( false === $stats ) {
+            $stats_data = $wpdb->get_row( "SELECT COUNT(ca.id) as total_accounts, SUM(ca.num_sub_accounts) as total_seats 
+                                     FROM {$wpdb->prefix}mepr_corporate_accounts ca
+                                     INNER JOIN {$wpdb->users} u ON ca.user_id = u.ID" );
+            
+            $used_seats_count = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key = 'mpca_corporate_account_id'" );
+            
+            $stats = array(
+                'total_accounts' => $stats_data->total_accounts,
+                'total_seats'    => $stats_data->total_seats,
+                'used_seats'     => $used_seats_count,
+            );
+            
+            set_transient( 'mpca_report_stats', $stats, HOUR_IN_SECONDS );
+        }
+
+        $percent = $stats['total_seats'] > 0 ? ( $stats['used_seats'] / $stats['total_seats'] ) * 100 : 0;
         ?>
         <div class="mpca-dashboard-widget">
             <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
                 <div class="mpca-stat-item">
-                    <span style="display: block; font-size: 24px; font-weight: 700;"><?php echo number_format( $stats->total_accounts ); ?></span>
-                    <span style="font-size: 12px; color: #64748b;">Total Accounts</span>
+                    <span style="display: block; font-size: 24px; font-weight: 700;"><?php echo number_format( $stats['total_accounts'] ); ?></span>
+                    <span style="font-size: 12px; color: #64748b;"><?php esc_html_e( 'Total Accounts', 'export-corporate-subaccounts' ); ?></span>
                 </div>
                 <div class="mpca-stat-item">
-                    <span style="display: block; font-size: 24px; font-weight: 700;"><?php echo number_format( $used_seats ); ?> / <?php echo number_format( $stats->total_seats ); ?></span>
-                    <span style="font-size: 12px; color: #64748b;">Seats Used</span>
+                    <span style="display: block; font-size: 24px; font-weight: 700;"><?php echo number_format( $stats['used_seats'] ); ?> / <?php echo number_format( $stats['total_seats'] ); ?></span>
+                    <span style="font-size: 12px; color: #64748b;"><?php esc_html_e( 'Seats Used', 'export-corporate-subaccounts' ); ?></span>
                 </div>
             </div>
             <div class="mpca-progress-container" style="height: 12px; margin-bottom: 10px;">
-                <div class="mpca-progress-bar low" style="width: <?php echo min( 100, $percent ); ?>%; background-color: #2563eb;"></div>
+                <div class="mpca-progress-bar low" style="width: <?php echo esc_attr( min( 100, $percent ) ); ?>%; background-color: #2563eb;"></div>
             </div>
             <p style="margin: 0; font-size: 13px;">
-                <strong><?php echo round( $percent, 1 ); ?>%</strong> of total corporate capacity is currently utilized.
+                <strong><?php echo esc_html( round( $percent, 1 ) ); ?>%</strong> <?php esc_html_e( 'of total corporate capacity is currently utilized.', 'export-corporate-subaccounts' ); ?>
             </p>
             <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
-            <a href="<?php echo admin_url( 'admin.php?page=mpca-reports' ); ?>" class="button button-primary">View Detailed Report</a>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=mpca-reports' ) ); ?>" class="button button-primary"><?php esc_html_e( 'View Detailed Report', 'export-corporate-subaccounts' ); ?></a>
         </div>
         <?php
     }
 
     public function handle_csv_export() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( 'Unauthorized' );
+            wp_die( esc_html__( 'Unauthorized', 'export-corporate-subaccounts' ) );
         }
 
         $ca_id = isset( $_GET['ca'] ) ? intval( $_GET['ca'] ) : 0;
         if ( ! $ca_id ) {
-            wp_die( 'Invalid Corporate Account ID' );
+            wp_die( esc_html__( 'Invalid Corporate Account ID', 'export-corporate-subaccounts' ) );
         }
 
         check_admin_referer( 'mpca_export_' . $ca_id );
@@ -122,12 +144,12 @@ class MPCA_Report {
         $csv_results = array();
         foreach ( $sub_accounts as $sub ) {
             $csv_results[] = array(
-                'Owner Name'         => $owner->full_name(),
-                'Owner Email'        => $owner->user_email,
-                'Subacc. Email'      => $sub->user_email,
-                'Subacc. Username'   => $sub->user_login,
-                'Subacc. First Name' => $sub->first_name,
-                'Subacc. Last Name'  => $sub->last_name,
+                __( 'Owner Name', 'export-corporate-subaccounts' )         => $owner->full_name(),
+                __( 'Owner Email', 'export-corporate-subaccounts' )        => $owner->user_email,
+                __( 'Subacc. Email', 'export-corporate-subaccounts' )      => $sub->user_email,
+                __( 'Subacc. Username', 'export-corporate-subaccounts' )   => $sub->user_login,
+                __( 'Subacc. First Name', 'export-corporate-subaccounts' ) => $sub->first_name,
+                __( 'Subacc. Last Name', 'export-corporate-subaccounts' )  => $sub->last_name,
             );
         }
 
