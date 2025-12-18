@@ -13,6 +13,10 @@ class MPCA_Report_Table extends WP_List_Table {
         ) );
     }
 
+    protected function get_table_classes() {
+        return array( 'widefat', 'fixed', 'striped', 'mpca-table', $this->_args['plural'] );
+    }
+
     public function get_columns() {
         return array(
             'company'    => __( 'Account / Company', 'export-corporate-subaccounts' ),
@@ -27,7 +31,7 @@ class MPCA_Report_Table extends WP_List_Table {
     protected function get_sortable_columns() {
         return array(
             'company' => array( 'company', false ),
-            'seats'   => array( 'seats_used', false ),
+            'seats'   => array( 'seats', false ),
         );
     }
 
@@ -158,14 +162,12 @@ class MPCA_Report_Table extends WP_List_Table {
     public function prepare_items() {
         global $wpdb;
 
-        // Verify nonce if filtering
-        if ( ! empty( $_GET['s'] ) || ! empty( $_GET['orderby'] ) || ! empty( $_GET['order'] ) ) {
+        // Verify nonce only if searching
+        if ( ! empty( $_GET['s'] ) ) {
             $nonce = isset( $_GET['mpca_nonce'] ) ? sanitize_text_field( wp_unslash( $_GET['mpca_nonce'] ) ) : '';
             if ( ! wp_verify_nonce( $nonce, 'mpca_report_filter' ) ) {
-                // If nonce fails, we just don't filter
+                // If nonce fails, we just don't search
                 $_GET['s'] = '';
-                $_GET['orderby'] = '';
-                $_GET['order'] = '';
             }
         }
 
@@ -207,7 +209,7 @@ class MPCA_Report_Table extends WP_List_Table {
         $orderby = 'ca.id';
         if ( $orderby_request === 'company' ) {
             $orderby = 'company_name';
-        } elseif ( $orderby_request === 'seats_used' ) {
+        } elseif ( $orderby_request === 'seats' ) {
             $orderby = 'seats_used_count';
         }
         
